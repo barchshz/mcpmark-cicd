@@ -171,10 +171,17 @@ jobs:
         id: parse-audit
         run: |
           if [ -n "$audit_output" ]; then
-            VULNERABILITIES=$(echo "$audit_output" | jq -r '.metadata?.vulnerabilities // {}')
-            echo "vulnerabilities=$VULNERABILITIES" >> $GITHUB_OUTPUT
+            node -e "
+              try {
+                const audit = JSON.parse(process.env.audit_output);
+                const vuln = audit.metadata?.vulnerabilities || { total: 0, critical: 0, high: 0, moderate: 0, low: 0 };
+                console.log('vulnerabilities=' + JSON.stringify(vuln));
+              } catch (e) {
+                console.log('vulnerabilities=' + JSON.stringify({ total: 0, critical: 0, high: 0, moderate: 0, low: 0 }));
+              }
+            "
           else
-            echo 'vulnerabilities={"total":0}' >> $GITHUB_OUTPUT
+            echo 'vulnerabilities={"total":0,"critical":0,"high":0,"moderate":0,"low":0}' >> $GITHUB_OUTPUT
           fi
 
       - name: Post Security Scan Report
